@@ -89,12 +89,12 @@ def color_spatial_features(imgs, cspace='RGB', spatial_size=(32, 32),
                 temp_img = cv2.cvtColor(temp_img,cv2.COLOR_RGB2HSV)
             if cspace =='LUV':
                 temp_img = cv2.cvtColor(temp_img, cv2.COLOR_RGB2LUV)
-            if color_space = 'LAB':
+            if color_space == 'LAB':
                 temp_img= cv2.cvtColor(temp_img,cv2.COLOR_RGB2LAB)
             if color_space == 'YUV':
                 temp_img = cv2.cvtColor(temp_img,cv2.COLOR_RGB2YUV)
             if color_space == 'HLS':
-                temp_img = cv2.cvtColor(temp_img,cv2.COLOR_RGB2HLS0
+                temp_img = cv2.cvtColor(temp_img,cv2.COLOR_RGB2HLS)
         
         spatial_color_features = bin_spatial(temp_img)
         color_hist_features = color_hist(temp_img)

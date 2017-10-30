@@ -5,8 +5,8 @@ import matplotlib.image as mpimg
 from skimage.feature import hog
 from sklearn.preprocessing import StandardScaler
 from helper_functions import *
-
-
+import glob
+import itertools
 
 def extract_features(imgs, cspace='RGB', 
                         orient=9, 
@@ -14,7 +14,7 @@ def extract_features(imgs, cspace='RGB',
                         cell_per_block=2,
                         hog_channel=0,
                         spatial_features =True,
-                        color_features =True)
+                        color_features =True):
     # Create a list to append feature vectors to
     features = []
     # Iterate through the list of images
@@ -65,7 +65,7 @@ def extract_features(imgs, cspace='RGB',
 
     
 
-def single_img_features(img, cspace='RGB', 
+def single_img_features(image, cspace='RGB', 
                         orient=9, 
                         pix_per_cell=8, 
                         cell_per_block=2,
@@ -87,6 +87,8 @@ def single_img_features(img, cspace='RGB',
             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
         elif cspace == 'YCrCb':
             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+        elif cspace == 'LAB':
+            feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     else: feature_image = np.copy(image)      
 
     # Call get_hog_features() with vis=False, feature_vec=True
@@ -110,21 +112,60 @@ def single_img_features(img, cspace='RGB',
     file_features.append(hog_features)
     #Append color histogram features if flag is set
     if color_features:
-        c_features = color_hist(feature_image,cspace)
-        file_features.append(s_features)
+        c_features = color_hist(feature_image)
+        file_features.append(c_features)
     #Append spatial features if flag is set
     if spatial_features:
         s_features = bin_spatial(feature_image)
         file_features.append(s_features)
-
+    
     if visualise:
-        return np.concatenate(file_features),hog_image
+        return np.asarray(list(itertools.chain.from_iterable(file_features))),hog_image
     else:
-        return np.concatenate(file_features)
+        return np.asarray(list(itertools.chain.from_iterable(file_features)))
 
 
-def train_classifier():
-   image = cv2.imread() 
+def train_classifier(sample_size = 500):
+    car_images = glob.glob('./vehicles/GTI_Left/*.png')
+    notcar_images =glob.glob('./non-vehicles/Extras/*.png')
+    cars = []
+    notcars = []
 
+    for i in range(0,sample_size):
+        cars.append(car_images[i])
 
+    for i in range(0,sample_size):
+        notcars.append(notcar_images[i])
 
+    print ('No. car images : ', len(cars))
+    print ('No. not car images: ',len(notcars))
+
+    car_ind = np.random.randint(0,len(cars))
+    notcar_ind = np.random.randint(0,len(notcars))
+    
+    print('car img: ',car_ind,'->',cars[car_ind]) 
+    print('notcar img: ',notcar_ind,'->',notcars[notcar_ind])
+
+    car_img = cv2.imread(cars[car_ind])
+    car_img = cv2.cvtColor(car_img,cv2.COLOR_BGR2RGB)
+
+    not_car_img = cv2.imread(notcars[notcar_ind])
+    not_car_img = cv2.cvtColor(not_car_img,cv2.COLOR_BGR2RGB)
+
+    car_features, carhog_image = single_img_features(car_img,
+            cspace = 'YCrCb',hog_channel='ALL',visualise =True)
+    notcar_features, notcarhog_image = single_img_features(not_car_img,
+            cspace='YCrCb',hog_channel='ALL',visualise=True)
+    
+    f,arr = plt.subplots(2,2,figsize=(15,15))
+    arr[0,0].imshow(car_img)
+    arr[1,0].imshow(not_car_img)
+    arr[0,1].imshow(carhog_image)
+    arr[1,1].imshow(notcarhog_image)
+    
+    print('car feature vector shape:',car_features.shape)
+    print('not car feature vector shape: ',notcar_features.shape)
+    plt.show()
+    
+if __name__ == '__main__':
+    train_classifier()
