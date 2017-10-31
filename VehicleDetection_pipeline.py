@@ -51,8 +51,8 @@ def extract_features(imgs, cspace='RGB',
         file_features.append(hog_features)
 	#Append color histogram features if flag is set
         if color_features:
-            c_features = color_hist(feature_image,cspace)
-            file_features.append(s_features)
+            c_features = color_hist(feature_image)
+            file_features.append(c_features)
         #Append spatial features if flag is set
         if spatial_features:
             s_features = bin_spatial(feature_image)
@@ -129,54 +129,27 @@ def single_img_features(image, cspace='RGB',
     else:
         return np.asarray(list(itertools.chain.from_iterable(file_features)))
 
-
-def train_classifier(sample_size = 500):
-    car_images = glob.glob('./vehicles/GTI_Left/*.png')
-    notcar_images =glob.glob('./non-vehicles/Extras/*.png')
-    cars = []
-    notcars = []
-
-    for i in range(0,sample_size):
-        cars.append(car_images[i])
-
-    for i in range(0,sample_size):
-        notcars.append(notcar_images[i])
-
-    print ('No. car images : ', len(cars))
-    print ('No. not car images: ',len(notcars))
-
-    car_ind = np.random.randint(0,len(cars))
-    notcar_ind = np.random.randint(0,len(notcars))
+def visualise_feature_image(car_img, notcar_img,cspace='YCrCb'):
     
-    print('car img: ',car_ind,'->',cars[car_ind]) 
-    print('notcar img: ',notcar_ind,'->',notcars[notcar_ind])
-
-    car_img = cv2.imread(cars[car_ind])
-    car_img = cv2.cvtColor(car_img,cv2.COLOR_BGR2RGB)
-
-    not_car_img = cv2.imread(notcars[notcar_ind])
-    not_car_img = cv2.cvtColor(not_car_img,cv2.COLOR_BGR2RGB)
+    car_features1,carhog_image1 = single_img_features(car_img,
+            cspace = cspace,hog_channel=0,visualise=True)
+    notcar_features1,notcarhog_image1 = single_img_features(not_car_img,
+            cspace=cspace,hog_channel= 0,visualise=True)
 
     car_features1,carhog_image1 = single_img_features(car_img,
-            cspace = 'YCrCb',hog_channel=0,visualise=True)
+            cspace = cspace,hog_channel=0,visualise=True)
     notcar_features1,notcarhog_image1 = single_img_features(not_car_img,
-            cspace='YCrCb',hog_channel= 0,visualise=True)
-    
-
-    car_features1,carhog_image1 = single_img_features(car_img,
-            cspace = 'YCrCb',hog_channel=0,visualise=True)
-    notcar_features1,notcarhog_image1 = single_img_features(not_car_img,
-            cspace='YCrCb',hog_channel= 0,visualise=True)
+            cspace=cspace,hog_channel= 0,visualise=True)
 
     car_features2,carhog_image2 = single_img_features(car_img,
-            cspace = 'YCrCb',hog_channel=1,visualise=True)
+            cspace = cspace,hog_channel=1,visualise=True)
     notcar_features2,notcarhog_image2 = single_img_features(not_car_img,
-            cspace='YCrCb',hog_channel= 1,visualise=True)
+            cspace=cspace,hog_channel= 1,visualise=True)
     
     car_features3,carhog_image3 = single_img_features(car_img,
-            cspace = 'YCrCb',hog_channel=2,visualise=True)
+            cspace = cspace,hog_channel=2,visualise=True)
     notcar_features3,notcarhog_image3 = single_img_features(not_car_img,
-            cspace='YCrCb',hog_channel= 2,visualise=True)
+            cspace=cspace,hog_channel= 2,visualise=True)
     
     f1,arr1 = plt.subplots(2,2,figsize=(15,15))
     arr1[0,0].imshow(car_img)
@@ -190,9 +163,54 @@ def train_classifier(sample_size = 500):
     arr2[1,0].imshow(notcarhog_image3)
     arr2[0,1].imshow(notcarhog_image2)
     arr2[1,1].imshow(notcarhog_image1)
-    #print('car feature vector shape:',car_features.shape)
-    #print('not car feature vector shape: ',notcar_features.shape)
     plt.show()
+
+def train_classifier():
+    car_images = glob.glob('./vehicles_smallset/*.jpeg')
+    notcar_images =glob.glob('./non-vehicles_smallset/*.jpeg')
+    cars = []
+    notcars = []
+
+    sample_size = 500
+
+    for img in car_images:
+        cars.append(img)
+
+    for img in notcar_images:
+        notcars.append(img)
+   
+    print ('No. car images : ', len(cars)) 
+    print ('No. not car images: ',len(notcars))
+
+    car_ind = np.random.randint(0,len(cars),sample_size)
+    notcar_ind = np.random.randint(0,len(notcars),sample_size)
+   
+
+    v_car_ind = np.random.randint(0,len(cars))
+    v_notcar_ind = np.random.randint(0,len(notcars))
+    print('car img: ',v_car_ind,'->',cars[v_car_ind]) 
+    print('notcar img: ',v_notcar_ind,'->',notcars[v_notcar_ind])
+
+    car_img = cv2.imread(cars[v_car_ind])
+    car_img = cv2.cvtColor(car_img,cv2.COLOR_BGR2RGB)
+
+    not_car_img = cv2.imread(notcars[v_notcar_ind])
+    not_car_img = cv2.cvtColor(not_car_img,cv2.COLOR_BGR2RGB)
+
+    #visualise_feature_image(car_img,notcar_img,cspace='YCrCb')
+    car_features = extract_features(cars)
+    notcar_features = extract_features(notcars)
+
+    labels = np.hstack((np.ones(len(cars)),np.zeros(len(notcars))))
+    train_features = np.vstack((car_features,notcar_features))
+    scaled_train_features = scale_features(train_features)
+
+    print('scaled features shape: ',scaled_train_features.shape)
+    print('labels vector shape: ', labels.shape)
+
+
+
+
     
 if __name__ == '__main__':
     train_classifier()

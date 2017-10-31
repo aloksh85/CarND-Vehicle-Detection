@@ -106,4 +106,11 @@ def color_spatial_features(imgs, cspace='RGB', spatial_size=(32, 32),
 def scale_features(X):
     scaler = StandardScaler().fit(X)
     # Apply the scaler to X
-    scaled_X = X_scaler.transform(X)
+    scaled_X = scaler.transform(X)
+
+    return scaled_X
+
+
+def trainSVM(features):
+    clf =None 
+    return clf    
