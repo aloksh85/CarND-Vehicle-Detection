@@ -94,11 +94,16 @@ def single_img_features(image, cspace='RGB',
     # Call get_hog_features() with vis=False, feature_vec=True
     if hog_channel == 'ALL':
         hog_features = []
+        hog_image = None
         for channel in range(feature_image.shape[2]):
-            hog_features.append(get_hog_features(feature_image[:,:,channel], 
+            features=get_hog_features(feature_image[:,:,channel], 
                                 orient, pix_per_cell, cell_per_block, 
-                                vis=False, feature_vec=True))
-        hog_features = np.ravel(hog_features)        
+                                vis=False, feature_vec=True)
+            
+            hog_features.append(features)
+        
+        hog_features = np.ravel(hog_features)
+
     else:
         if visualise:
             hog_features,hog_image = get_hog_features(feature_image[:,:,hog_channel], 
@@ -152,19 +157,41 @@ def train_classifier(sample_size = 500):
     not_car_img = cv2.imread(notcars[notcar_ind])
     not_car_img = cv2.cvtColor(not_car_img,cv2.COLOR_BGR2RGB)
 
-    car_features, carhog_image = single_img_features(car_img,
-            cspace = 'YCrCb',hog_channel='ALL',visualise =True)
-    notcar_features, notcarhog_image = single_img_features(not_car_img,
-            cspace='YCrCb',hog_channel='ALL',visualise=True)
+    car_features1,carhog_image1 = single_img_features(car_img,
+            cspace = 'YCrCb',hog_channel=0,visualise=True)
+    notcar_features1,notcarhog_image1 = single_img_features(not_car_img,
+            cspace='YCrCb',hog_channel= 0,visualise=True)
     
-    f,arr = plt.subplots(2,2,figsize=(15,15))
-    arr[0,0].imshow(car_img)
-    arr[1,0].imshow(not_car_img)
-    arr[0,1].imshow(carhog_image)
-    arr[1,1].imshow(notcarhog_image)
+
+    car_features1,carhog_image1 = single_img_features(car_img,
+            cspace = 'YCrCb',hog_channel=0,visualise=True)
+    notcar_features1,notcarhog_image1 = single_img_features(not_car_img,
+            cspace='YCrCb',hog_channel= 0,visualise=True)
+
+    car_features2,carhog_image2 = single_img_features(car_img,
+            cspace = 'YCrCb',hog_channel=1,visualise=True)
+    notcar_features2,notcarhog_image2 = single_img_features(not_car_img,
+            cspace='YCrCb',hog_channel= 1,visualise=True)
     
-    print('car feature vector shape:',car_features.shape)
-    print('not car feature vector shape: ',notcar_features.shape)
+    car_features3,carhog_image3 = single_img_features(car_img,
+            cspace = 'YCrCb',hog_channel=2,visualise=True)
+    notcar_features3,notcarhog_image3 = single_img_features(not_car_img,
+            cspace='YCrCb',hog_channel= 2,visualise=True)
+    
+    f1,arr1 = plt.subplots(2,2,figsize=(15,15))
+    arr1[0,0].imshow(car_img)
+    arr1[1,0].imshow(carhog_image2)
+    arr1[0,1].imshow(carhog_image3)
+    arr1[1,1].imshow(carhog_image1)
+
+    
+    f2,arr2 = plt.subplots(2,2,figsize=(15,15))
+    arr2[0,0].imshow(not_car_img)
+    arr2[1,0].imshow(notcarhog_image3)
+    arr2[0,1].imshow(notcarhog_image2)
+    arr2[1,1].imshow(notcarhog_image1)
+    #print('car feature vector shape:',car_features.shape)
+    #print('not car feature vector shape: ',notcar_features.shape)
     plt.show()
     
 if __name__ == '__main__':
