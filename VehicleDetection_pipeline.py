@@ -208,6 +208,12 @@ def train_classifier():
     print('scaled features shape: ',scaled_train_features.shape)
     print('labels vector shape: ', labels.shape)
 
+    # split traiin test
+    # train SVM
+    # check accuracy
+    # sliding window search
+    # smoothing between frames
+    #Train YOLO
 
 
 
