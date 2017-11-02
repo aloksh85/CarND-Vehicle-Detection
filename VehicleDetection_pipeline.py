@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from helper_functions import *
 import glob
 import itertools
-
+from sklearn.modelselection import train_test_split 
 def extract_features(imgs, cspace='RGB', 
                         orient=9, 
                         pix_per_cell=8, 
@@ -165,7 +165,23 @@ def visualise_feature_image(car_img, notcar_img,cspace='YCrCb'):
     arr2[1,1].imshow(notcarhog_image1)
     plt.show()
 
-def train_classifier():
+def train_classifier(train_images,train_labels):
+
+    print ('Training SVM')
+    svm_clf = trainSVM(scaled_train_features,train_labels)
+    print('Training complete. SVM: ',svm_clf)
+
+
+    # split traiin test
+    # train SVM
+    # check accuracy
+    # sliding window search
+    # smoothing between frames
+    #Train YOLO
+
+
+
+def vehicle_detection_training():
     car_images = glob.glob('./vehicles_smallset/*.jpeg')
     notcar_images =glob.glob('./non-vehicles_smallset/*.jpeg')
     cars = []
@@ -196,27 +212,22 @@ def train_classifier():
 
     not_car_img = cv2.imread(notcars[v_notcar_ind])
     not_car_img = cv2.cvtColor(not_car_img,cv2.COLOR_BGR2RGB)
-
+    
     #visualise_feature_image(car_img,notcar_img,cspace='YCrCb')
     car_features = extract_features(cars)
     notcar_features = extract_features(notcars)
 
-    labels = np.hstack((np.ones(len(cars)),np.zeros(len(notcars))))
+    train_labels = np.hstack((np.ones(len(cars)),np.zeros(len(notcars))))
     train_features = np.vstack((car_features,notcar_features))
     scaled_train_features = scale_features(train_features)
 
     print('scaled features shape: ',scaled_train_features.shape)
-    print('labels vector shape: ', labels.shape)
+    print('labels vector shape: ', train_labels.shape)
 
-    # split traiin test
-    # train SVM
-    # check accuracy
-    # sliding window search
-    # smoothing between frames
-    #Train YOLO
+    X_train,X_test,y_train, y_test = train_test_split(scaled_train_features,
+            train_labels,test_size=0.3, random_state=42)
 
+        
 
-
-    
 if __name__ == '__main__':
     train_classifier()

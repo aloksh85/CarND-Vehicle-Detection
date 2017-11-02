@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from skimage.feature import hog
 from sklearn.preprocessing import StandardScaler
-
+from sklearn.svm import LinearSVC
 
 def bin_spatial(img, size=(32,32) ):
     """
@@ -111,6 +111,8 @@ def scale_features(X):
     return scaled_X
 
 
-def trainSVM(features):
+def trainSVM(features,labels):
     clf =None 
+    clf =LinearSVC()
+    clf.fit(features,labels)
     return clf    
