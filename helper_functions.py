@@ -168,6 +168,7 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     imcopy = np.copy(img)
     # Iterate through the bounding boxes
     for bbox in bboxes:
+        print('bbox: ',bbox)
         # Draw a rectangle given bbox coordinates
         cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
     # Return the image copy with boxes drawn

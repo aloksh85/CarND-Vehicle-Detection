@@ -21,11 +21,11 @@ def extract_features(imgs, cspace='RGB',
     features = []
     # Iterate through the list of images
     print('extracting features for ', len(imgs), 'imgs')
-
-    for img_file in imgs:
+    for img_file in  imgs:
         # Read in each one by one
+        
         image = cv2.imread(img_file)
-        imgae = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         file_features =[]
         # apply color conversion if other than 'RGB'
         if cspace != 'RGB':
@@ -48,22 +48,20 @@ def extract_features(imgs, cspace='RGB',
                 hog_features.append(get_hog_features(feature_image[:,:,channel], 
                                     orient, pix_per_cell, cell_per_block, 
                                     vis=False, feature_vec=True))
+
             hog_features = np.ravel(hog_features)        
         else:
             hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
                         pix_per_cell, cell_per_block, vis=False, feature_vec=True)
         # Append the new feature vector to the features list
-        print('hog feature shape: ', hog_features.shape)
         file_features.append(hog_features)
 	#Append color histogram features if flag is set
         if color_features:
             c_features = color_hist(feature_image)
-            print('color feature shape: ',c_features.shape)
             file_features.append(c_features)
         #Append spatial features if flag is set
         if spatial_features:
             s_features = bin_spatial(feature_image)
-            print('sp feature shape: ',s_features.shape)
             file_features.append(s_features)
 
         features.append(np.concatenate(file_features))
@@ -104,15 +102,15 @@ def single_img_features(image, cspace='RGB',
     if hog_channel == 'ALL':
         hog_features = []
         hog_image = None
+        print(orient,pix_per_cell,cell_per_block)
         for channel in range(feature_image.shape[2]):
             features=get_hog_features(feature_image[:,:,channel], 
                                 orient, pix_per_cell, cell_per_block, 
                                 vis=False, feature_vec=True)
             
             hog_features.append(features)
-        
-        hog_features = np.ravel(hog_features)
 
+        hog_features = np.ravel(hog_features)
     else:
         if visualise:
             hog_features,hog_image = get_hog_features(feature_image[:,:,hog_channel], 
@@ -121,7 +119,7 @@ def single_img_features(image, cspace='RGB',
 
             hog_features = get_hog_features(feature_image[:,:,hog_channel], 
                     orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True)
-    print('hog features shape: ', hog_features.shape)
+     
 
     # Append the new feature vector to the features list
     file_features.append(hog_features)
@@ -129,39 +127,39 @@ def single_img_features(image, cspace='RGB',
     if color_features:
         c_features = color_hist(feature_image)
 
-        print('colorvfeatures shape: ', c_features.shape)
         file_features.append(c_features)
     #Append spatial features if flag is set
     if spatial_features:
         s_features = bin_spatial(feature_image,size=spatial_size)
-        print('spatial features shape: ', s_features.shape)
         file_features.append(s_features)
     
+    features = np.asarray(list(itertools.chain.from_iterable(file_features)))
+    
     if visualise:
-        return np.asarray(list(itertools.chain.from_iterable(file_features))),hog_image
+        return features,hog_image
     else:
-        return np.asarray(list(itertools.chain.from_iterable(file_features)))
+        return features
 
 def visualise_feature_image(car_img, notcar_img,cspace='YCrCb'):
     
     car_features1,carhog_image1 = single_img_features(car_img,
             cspace = cspace,hog_channel=0,visualise=True)
-    notcar_features1,notcarhog_image1 = single_img_features(not_car_img,
+    notcar_features1,notcarhog_image1 = single_img_features(notcar_img,
             cspace=cspace,hog_channel= 0,visualise=True)
 
     car_features1,carhog_image1 = single_img_features(car_img,
             cspace = cspace,hog_channel=0,visualise=True)
-    notcar_features1,notcarhog_image1 = single_img_features(not_car_img,
+    notcar_features1,notcarhog_image1 = single_img_features(notcar_img,
             cspace=cspace,hog_channel= 0,visualise=True)
 
     car_features2,carhog_image2 = single_img_features(car_img,
             cspace = cspace,hog_channel=1,visualise=True)
-    notcar_features2,notcarhog_image2 = single_img_features(not_car_img,
+    notcar_features2,notcarhog_image2 = single_img_features(notcar_img,
             cspace=cspace,hog_channel= 1,visualise=True)
     
     car_features3,carhog_image3 = single_img_features(car_img,
             cspace = cspace,hog_channel=2,visualise=True)
-    notcar_features3,notcarhog_image3 = single_img_features(not_car_img,
+    notcar_features3,notcarhog_image3 = single_img_features(notcar_img,
             cspace=cspace,hog_channel= 2,visualise=True)
     
     f1,arr1 = plt.subplots(2,2,figsize=(15,15))
@@ -172,7 +170,7 @@ def visualise_feature_image(car_img, notcar_img,cspace='YCrCb'):
 
     
     f2,arr2 = plt.subplots(2,2,figsize=(15,15))
-    arr2[0,0].imshow(not_car_img)
+    arr2[0,0].imshow(notcar_img)
     arr2[1,0].imshow(notcarhog_image3)
     arr2[0,1].imshow(notcarhog_image2)
     arr2[1,1].imshow(notcarhog_image1)
@@ -227,9 +225,9 @@ def vehicle_detection_training(test_classifier=False):
     not_car_img = cv2.imread(notcars[v_notcar_ind])
     not_car_img = cv2.cvtColor(not_car_img,cv2.COLOR_BGR2RGB)
     
-    #visualise_feature_image(car_img,notcar_img,cspace='YCrCb')
-    car_features = extract_features(cars)
-    notcar_features = extract_features(notcars)
+    #visualise_feature_image(car_img,not_car_img,cspace='YCrCb')
+    car_features = extract_features(cars,hog_channel='ALL')
+    notcar_features = extract_features(notcars,hog_channel='ALL')
     
     train_labels = np.hstack((np.ones(len(cars)),np.zeros(len(notcars))))
     train_features = np.vstack((car_features,notcar_features))
@@ -268,14 +266,12 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
     #2) Iterate over all windows in the list
     for window in windows:
         #3) Extract the test window from original image
-        test_img = cv2.resize(img[window[0][1]:window[1][1], window[0][0]:window[1][0]], (32, 32))      
+        test_img = cv2.resize(img[window[0][1]:window[1][1], 
+            window[0][0]:window[1][0]],(64,64))
         #4) Extract features for that window using single_img_features()
         features = single_img_features(test_img, cspace=color_space, 
-                            spatial_size=spatial_size,  
-                            orient=orient, pix_per_cell=pix_per_cell, 
-                            cell_per_block=cell_per_block, 
-                            hog_channel=hog_channel, spatial_features=spatial_feat, 
-                            color_features=hist_feat)
+                hog_channel='ALL',visualise = False)
+                            
         print('test features shape: ',features.shape)
         #5) Scale extracted features to be fed to classifier
         test_features = scaler.transform(np.array(features).reshape(1, -1))
@@ -297,26 +293,31 @@ def process_test_images(clf,scaler):
         f,arr = plt.subplots(1,2,figsize=(15,15))
         test_img = cv2.imread(img)
         test_img = cv2.cvtColor(test_img,cv2.COLOR_BGR2RGB)
+        print('img: ',np.min(test_img),'-',np.max(test_img))
         img_size = test_img.shape
         detection_bbox_list = []
 
-        window_list1 = slide_window(test_img,y_start_stop=[int(img_size[0]*0.5),img_size[0]])
+        window_list1 = slide_window(test_img,xy_window=(128,128))
+
+        print('Num windows: ', len(window_list1))
         search1_bbox = search_windows(test_img,window_list1,clf,scaler,
                 color_space= 'YCrCb',hog_channel='ALL')
+        print(search1_bbox)
         detection_bbox_list.append(search1_bbox)
 
-        window_list2 = slide_window(test_img,y_start_stop=[int(img_size[0]*0.5),img_size[0]]
-                ,xy_window=(32,32))
-        search2_bbox = search_windows(test_img,window_list2,clf,scaler,
-                color_space= 'YCrCb',hog_channel='ALL')
-        detection_bbox_list.append(search2_bbox)
+        #window_list2 = slide_window(test_img,y_start_stop=[int(img_size[0]*0.5),img_size[0]]
+        #        ,xy_window=(64,64))
+        #search2_bbox = search_windows(test_img,window_list2,clf,scaler,
+        #        color_space= 'YCrCb',hog_channel='ALL')
+        #detection_bbox_list.append(search2_bbox)
 
-        window_list3 = slide_window(test_img,y_start_stop=[int(img_size[0]*0.5),
-            img_size[0]],xy_window=(16,16))
-        search3_bbox = search_windows(test_img,window_list3,clf,scaler,
-                color_space= 'YCrCb',hog_channel='ALL')
-        detection_bbox_list.append(search3_bbox) 
-
+        #window_list3 = slide_window(test_img,y_start_stop=[int(img_size[0]*0.5),
+        #    img_size[0]],xy_window=(32,32))
+        #search3_bbox = search_windows(test_img,window_list3,clf,scaler,
+        #        color_space= 'YCrCb',hog_channel='ALL')
+        #detection_bbox_list.append(search3_bbox) 
+        
+        print('hot bbox: ',detection_bbox_list)
         search_result_img = draw_boxes(test_img,detection_bbox_list)
 
         arr[0].imshow(test_img)
