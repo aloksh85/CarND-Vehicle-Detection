@@ -108,7 +108,7 @@ def scale_features(X):
     # Apply the scaler to X
     scaled_X = scaler.transform(X)
 
-    return scaled_X
+    return scaled_X,scaler
 
 
 def train_SVM(features,labels):
