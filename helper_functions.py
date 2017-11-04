@@ -72,7 +72,7 @@ def color_hist(img, nbins=32):
 
 
 def color_spatial_features(imgs, cspace='RGB', spatial_size=(32, 32),
-                        hist_bins=32, hist_range=(0, 256)):
+                        hist_bins=32 ):
     # Create a list to append feature vectors to
     features = []
     # Iterate through the list of images
@@ -168,7 +168,6 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     imcopy = np.copy(img)
     # Iterate through the bounding boxes
     for bbox in bboxes:
-        print('bbox: ',bbox)
         # Draw a rectangle given bbox coordinates
         cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
     # Return the image copy with boxes drawn
