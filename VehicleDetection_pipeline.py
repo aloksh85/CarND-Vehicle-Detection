@@ -27,10 +27,10 @@ def extract_features(imgs, cspace='RGB',
     for img_file in  imgs:
         # Read in each one by one
         
-        image = cv2.imread(img_file)
-        #image = (255*image)/np.max(image)
-        print('image: ',np.min(image),'-',np.max(image))
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = mpimg.imread(img_file)
+        #image = image.astype(np.float32)/255.0
+        #print('image: ',np.min(image),'-',np.max(image))
+        #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         file_features =[]
         # apply color conversion if other than 'RGB'
         if cspace != 'RGB':
@@ -87,6 +87,13 @@ def single_img_features(image, cspace='RGB',
                         color_features=True):
 
     file_features =[]
+    #print('pipeline parameters:')
+    #print('orient: ',orient,
+    #        'pix_per_cell: ',pix_per_cell,
+    #        'cell_per_block: ',cell_per_block)
+    #print('cspace: ',cspace)
+    #print('spatial features: ',spatial_features)
+    #print('color_features: ',color_features)
     # apply color conversion if other than 'RGB'
     if cspace != 'RGB':
         if cspace == 'HSV':
@@ -103,46 +110,33 @@ def single_img_features(image, cspace='RGB',
             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     else: feature_image = np.copy(image)      
 
-    # Call get_hog_features() with vis=False, feature_vec=True
+        # Call get_hog_features() with vis=False, feature_vec=True
     if hog_channel == 'ALL':
         hog_features = []
-        hog_image = None
         for channel in range(feature_image.shape[2]):
-            features=get_hog_features(feature_image[:,:,channel], 
+            hog_features.append(get_hog_features(feature_image[:,:,channel], 
                                 orient, pix_per_cell, cell_per_block, 
-                                vis=False, feature_vec=True)
-            
-            hog_features.append(features)
+                                vis=False, feature_vec=True))
 
-        hog_features = np.ravel(hog_features)
+        hog_features = np.ravel(hog_features)        
     else:
-        if visualise:
-            hog_features,hog_image = get_hog_features(feature_image[:,:,hog_channel], 
-                    orient, pix_per_cell, cell_per_block, vis=True, feature_vec=True)
-        else:
-
-            hog_features = get_hog_features(feature_image[:,:,hog_channel], 
-                    orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True)
-     
-
+        hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
+                    pix_per_cell, cell_per_block, vis=False, feature_vec=True)
     # Append the new feature vector to the features list
     file_features.append(hog_features)
     #Append color histogram features if flag is set
     if color_features:
         c_features = color_hist(feature_image)
-
         file_features.append(c_features)
     #Append spatial features if flag is set
     if spatial_features:
-        s_features = bin_spatial(feature_image,size=spatial_size)
+        s_features = bin_spatial(feature_image)
         file_features.append(s_features)
     
-    features = np.asarray(list(itertools.chain.from_iterable(file_features)))
-    
     if visualise:
-        return features,hog_image
+        return np.concatenate(file_features),hog_image
     else:
-        return features
+        return np.concatenate(file_features)
 
 def visualise_feature_image(cspace='YCrCb',orient=8,pix_per_cell=16,cell_per_block=2):
     
@@ -170,14 +164,14 @@ def visualise_feature_image(cspace='YCrCb',orient=8,pix_per_cell=16,cell_per_blo
     print('car img: ',v_car_ind,'->',cars[v_car_ind]) 
     print('notcar img: ',v_notcar_ind,'->',notcars[v_notcar_ind])
 
-    car_img = cv2.imread(cars[v_car_ind])
-    car_img = cv2.cvtColor(car_img,cv2.COLOR_BGR2RGB)
-    #car_img= 255.*(car_img.astype(np.float32)/np.max(car_img))
+    car_img = mpimg.imread(cars[v_car_ind])
+    #car_img = cv2.cvtColor(car_img,cv2.COLOR_BGR2RGB)
+    #car_img= car_img.astype(np.float32)/255.0
     print('image: ',np.min(car_img),'-',np.max(car_img))
     
-    notcar_img = cv2.imread(notcars[v_notcar_ind])
-    notcar_img = cv2.cvtColor(notcar_img,cv2.COLOR_BGR2RGB)
-    #notcar_img= 255.*(notcar_img.astype(np.float32)/np.max(notcar_img))
+    notcar_img = mpimg.imread(notcars[v_notcar_ind])
+    #notcar_img = cv2.cvtColor(notcar_img,cv2.COLOR_BGR2RGB)
+    #notcar_img= notcar_img.astype(np.float32)/255.0
     print('image: ',np.min(notcar_img),'-',np.max(notcar_img))
     
     car_features1,carhog_image1 = single_img_features(car_img,
@@ -230,11 +224,11 @@ def visualise_feature_image(cspace='YCrCb',orient=8,pix_per_cell=16,cell_per_blo
     
 
 
-def train_classifier(train_features,train_labels,clf_type='SVM'):
+def train_classifier(train_features,train_labels,clf_type='SVM',svm_C=1.0):
 
     if clf_type =='SVM':
         print ('Training SVM')
-        clf = train_SVM(train_features,train_labels)
+        clf = train_SVM(train_features,train_labels,C_param =svm_C)
         print('Training complete.')
 
     return clf
@@ -248,7 +242,11 @@ def train_classifier(train_features,train_labels,clf_type='SVM'):
 
 
 
-def vehicle_detection_training(test_classifier=False,color_feat=True,spatial_feat=True):
+def vehicle_detection_training(test_classifier=False,
+                               color_feat=True,
+                               spatial_feat=True,
+                               svm_C=1.0,
+                               test_ratio=0.3):
     car_images = glob.glob('./vehicles/*.png')
     notcar_images =glob.glob('./non-vehicles/*.png')
     cars = []
@@ -273,36 +271,38 @@ def vehicle_detection_training(test_classifier=False,color_feat=True,spatial_fea
     print('car img: ',v_car_ind,'->',cars[v_car_ind]) 
     print('notcar img: ',v_notcar_ind,'->',notcars[v_notcar_ind])
 
-    car_img = cv2.imread(cars[v_car_ind])
-    car_img = cv2.cvtColor(car_img,cv2.COLOR_BGR2RGB)
+    car_img = mpimg.imread(cars[v_car_ind])
+    #car_img = cv2.cvtColor(car_img,cv2.COLOR_BGR2RGB)
 
-    not_car_img = cv2.imread(notcars[v_notcar_ind])
-    not_car_img = cv2.cvtColor(not_car_img,cv2.COLOR_BGR2RGB)
+    not_car_img = mpimg.imread(notcars[v_notcar_ind])
+    #not_car_img = cv2.cvtColor(not_car_img,cv2.COLOR_BGR2RGB)
     
     #visualise_feature_image(car_img,not_car_img,cspace='YCrCb')
-    car_features = extract_features(cars,hog_channel='ALL',
+    car_features = extract_features(cars,cspace='YCrCb',hog_channel='ALL',
             color_features=color_feat,spatial_features =spatial_feat)
-    notcar_features = extract_features(notcars,hog_channel='ALL',
+    notcar_features = extract_features(notcars,cspace='YCrCb',hog_channel='ALL',
             color_features=color_feat,spatial_features=spatial_feat)
     
-    train_labels = np.hstack((np.ones(len(cars)),np.zeros(len(notcars))))
-    train_features = np.vstack((car_features,notcar_features))
+    train_labels = np.hstack((np.ones(len(car_features)),np.zeros(len(notcar_features))))
+    train_features = np.vstack((car_features,notcar_features)).astype(np.float64)
     scaled_train_features,scaler = scale_features(train_features)
 
     print('scaled features shape: ',scaled_train_features.shape)
     print('labels vector shape: ', train_labels.shape)
+    print('mean: ',np.mean(scaled_train_features),
+            'std: ',np.std(scaled_train_features))
 
     if test_classifier:	
         X_train,X_test,y_train, y_test = train_test_split(scaled_train_features,
                 train_labels,test_size=test_ratio, random_state=42)
 
-        trained_svm_clf = train_classifier(X_train,y_train)
+        trained_svm_clf = train_classifier(X_train,y_train,svm_C=svm_C)
         predictions = trained_svm_clf.predict(X_test)
         accuracy =  accuracy_score(y_test,predictions)
 
         print ('classifier accuracy: ', accuracy)
     else:
-        trained_svm_clf = train_classifier(scaled_train_features,train_labels)
+        trained_svm_clf = train_classifier(scaled_train_features,train_labels,svm_C=svm_C)
 
     return trained_svm_clf,scaler
 
@@ -326,15 +326,19 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
         #3) Extract the test window from original image
         test_img = cv2.resize(img[window[0][1]:window[1][1], 
             window[0][0]:window[1][0]],(64,64))
-        cv2.imwrite("./win_"+str(count)+".png",test_img)
 
         #4) Extract features for that window using single_img_features()
         features = single_img_features(test_img, cspace=color_space, 
                 hog_channel='ALL',visualise = False,
                 color_features=hist_feat,spatial_features=spatial_feat)
-                            
+                           
+        #print('img features shape: ',features.shape)
+
         #5) Scale extracted features to be fed to classifier
         test_features = scaler.transform(np.array(features).reshape(1, -1))
+        #print('scaled features shape: ',test_features.shape,
+        #        'mean: ',np.mean(test_features),
+        #        'std: ',np.std(test_features))
         #6) Predict using your classifier
         prediction = clf.predict(test_features)
         #7) If positive (prediction == 1) then save the window
@@ -351,49 +355,46 @@ def process_test_images(clf,scaler,color_features=True,spatial_features=True):
     
     for img in test_image_files:
         f,arr = plt.subplots(1,2,figsize=(15,15))
-        test_img = cv2.imread(img)
-        #test_img= (255*test_img)/np.max(test_img)
-        print('image: ',np.min(test_img),'-',np.max(test_img))
-        test_img = cv2.cvtColor(test_img,cv2.COLOR_BGR2RGB)
+        test_img = mpimg.imread(img)
+        #test_img = cv2.cvtColor(test_img,cv2.COLOR_BGR2RGB)
+#        print('image: ',np.min(test_img),'-',np.max(test_img))
+        test_img= test_img.astype(np.float32)/255.0
+#        print('scaled image: ',np.min(test_img),'-',np.max(test_img))
         img_size = test_img.shape
         detection_bbox_list = []
         overlap = 0.5
-        y_start_stop = [350,720]
-
-        window_list1 = slide_window(test_img,xy_window=(256,256),
+        y_start_stop = [300,700]
+        x_start_stop =[200,1280]
+        
+        window_list1=[]
+        window_list1 = slide_window(test_img,xy_window=(64,64),
                 y_start_stop=y_start_stop,xy_overlap=(0.5,0.5))
-        #search1_bbox = search_windows(test_img,window_list1,clf,scaler,
-        #        color_space= 'YCrCb',hog_channel='ALL',spatial_feat=spatial_features,
-        #        hist_feat=color_features)
-        #detection_bbox_list = detection_bbox_list+ search1_bbox
-
-        window_list2 = slide_window(test_img,y_start_stop= y_start_stop,xy_window=(128,128),
+        
+        window_list2=[]
+        window_list2 = slide_window(test_img,x_start_stop=x_start_stop,
+                y_start_stop= y_start_stop,xy_window=(96,96),
                 xy_overlap=(0.5,0.5))
-        #search2_bbox = search_windows(test_img,window_list2,clf,scaler,
-        #        color_space= 'YCrCb',hog_channel='ALL',spatial_feat=spatial_features,
-        #        hist_feat=color_features)
-        #detection_bbox_list = detection_bbox_list+search2_bbox
-
-        window_list3 = slide_window(test_img,y_start_stop=y_start_stop,
-                xy_overlap=(overlap,overlap),xy_window=(96,96))
-        #search3_bbox = search_windows(test_img,window_list3,clf,scaler,
-        #        color_space= 'YCrCb',hog_channel='ALL',spatial_feat=spatial_features,
-        #        hist_feat=color_features)
-        hot_windows = search_windows(test_img,window_list3+window_list2+window_list1,
+        window_list3=[]
+        window_list3 = slide_window(test_img,x_start_stop=x_start_stop,
+                y_start_stop=y_start_stop,
+                xy_overlap=(0.5,0.5),xy_window=(80,80))
+        
+        hot_windows = search_windows(test_img,
+                window_list3+window_list2+window_list1,
                 clf,scaler, color_space= 'YCrCb',
                 hog_channel='ALL',spatial_feat=spatial_features,               
                 hist_feat=color_features)
+        
         detection_bbox_list = detection_bbox_list+hot_windows
         
-        return
-        draw_window_img = draw_boxes(test_img,search1_bbox+search3_bbox)
+        draw_window_img = draw_boxes(test_img,hot_windows)
         heatmap = np.zeros_like(test_img[:,:,0]).astype(np.float)
-        heatmap = add_heat(heatmap,detection_bbox_list)
+        heatmap = add_heat(heatmap,hot_windows)
         heatmap = apply_threshold(heatmap,1)
         labels = label(heatmap)
         draw_img = draw_labeled_bboxes(np.copy(test_img), labels)        
         arr[0].imshow(test_img)
-        arr[1].imshow(draw_window_img)
+        arr[1].imshow(draw_img)
         
 
 def add_heat(heatmap, bbox_list):
@@ -424,7 +425,7 @@ def draw_labeled_bboxes(img, labels):
         bbox = ((np.min(nonzerox), np.min(nonzeroy)),
                 (np.max(nonzerox), np.max(nonzeroy)))
         # Draw the box on the image
-        cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+        cv2.rectangle(img, bbox[0], bbox[1], color=(255,0,0), thickness=6)
     # Return the image
     return img
 
@@ -432,17 +433,17 @@ def process_image(test_img,clf,scaler,spatial_features=True,color_features=True)
         img_size = test_img.shape
         detection_bbox_list = []
         overlap = 0.5
-        y_start_stop = [350,720]
+        y_start_stop = [450,720]
 
-        window_list1 = slide_window(test_img,xy_window=(256,256),
-                y_start_stop=y_start_stop,xy_overlap=(0.5,0.5))
+        window_list1 = slide_window(test_img,xy_window=(64,64),
+                y_start_stop=y_start_stop,xy_overlap=(0.0,0.0))
         search1_bbox = search_windows(test_img,window_list1,clf,scaler,
                 color_space= 'YCrCb',hog_channel='ALL',spatial_feat=spatial_features,
                 hist_feat=color_features)
         detection_bbox_list = detection_bbox_list+ search1_bbox
 
-        #window_list2 = slide_window(test_img,y_start_stop= y_start_stop,xy_window=(128,128),
-        #        xy_overlap=(0.5,0.5))
+        window_list2 = slide_window(test_img,y_start_stop= y_start_stop,xy_window=(128,128),
+                xy_overlap=(0.5,0.5))
         #search2_bbox = search_windows(test_img,window_list2,clf,scaler,
         #        color_space= 'YCrCb',hog_channel='ALL',spatial_feat=spatial_features,
         #        hist_feat=color_features)
@@ -507,12 +508,14 @@ if __name__ == '__main__':
         scaler = None
         spatial_features = True
         color_features = True
-        orient=8
+        orient=9
         pix_per_cell=8
         cell_per_block =2
-        hist_bins =16
-        spatial_size=(16,16)
+        hist_bins =32
+        spatial_size=(32,32)
+        svm_C=0.1
         video =False
+        cspace ='YCrCb'
         videopath="./test_video.mp4"
         output_dir ="./output_video"
 
@@ -522,8 +525,9 @@ if __name__ == '__main__':
             svm_clf = classifier_dict['classifier']
             scaler = classifier_dict['feature_scaler']
         else:
-            svm_clf,scaler = vehicle_detection_training(color_feat=color_features,
-                    spatial_feat=spatial_features,)
+            svm_clf,scaler = vehicle_detection_training(test_classifier=True,
+                    color_feat=color_features,
+                    spatial_feat=spatial_features,svm_C=svm_C)
             classifier_dict ={'classifier':svm_clf,'feature_scaler':scaler}
             pickle.dump(classifier_dict,open("vehicle_classifier_allfeats.p","wb"))
            

@@ -107,13 +107,13 @@ def scale_features(X):
     scaler = StandardScaler().fit(X)
     # Apply the scaler to X
     scaled_X = scaler.transform(X)
+    print('scaler mean: ',scaler.mean_)
+    return scaled_X, scaler
 
-    return scaled_X,scaler
 
-
-def train_SVM(features,labels):
+def train_SVM(features,labels,C_param=1.0):
     clf = None 
-    clf =LinearSVC()
+    clf =LinearSVC(C=C_param)
     clf.fit(features,labels)
     return clf    
 
@@ -169,7 +169,7 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     # Iterate through the bounding boxes
     for bbox in bboxes:
         # Draw a rectangle given bbox coordinates
-        cv2.rectangle(imcopy, bbox[0], bbox[1], color, thick)
+        cv2.rectangle(imcopy, bbox[0], bbox[1], color=color,thickness= thick)
     # Return the image copy with boxes drawn
     return imcopy
 
