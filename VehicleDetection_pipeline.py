@@ -431,34 +431,38 @@ def draw_labeled_bboxes(img, labels):
 
 def process_image(test_img,clf,scaler,spatial_features=True,color_features=True):
         img_size = test_img.shape
+        dup_img = np.copy(test_img.astype(np.float32)/255.0)
+        #print('scaled image: ',np.min(test_img),'-',np.max(test_img))
+        img_size = test_img.shape
         detection_bbox_list = []
         overlap = 0.5
-        y_start_stop = [450,720]
-
-        window_list1 = slide_window(test_img,xy_window=(64,64),
-                y_start_stop=y_start_stop,xy_overlap=(0.0,0.0))
-        search1_bbox = search_windows(test_img,window_list1,clf,scaler,
-                color_space= 'YCrCb',hog_channel='ALL',spatial_feat=spatial_features,
-                hist_feat=color_features)
-        detection_bbox_list = detection_bbox_list+ search1_bbox
-
-        window_list2 = slide_window(test_img,y_start_stop= y_start_stop,xy_window=(128,128),
-                xy_overlap=(0.5,0.5))
-        #search2_bbox = search_windows(test_img,window_list2,clf,scaler,
-        #        color_space= 'YCrCb',hog_channel='ALL',spatial_feat=spatial_features,
-        #        hist_feat=color_features)
-        #detection_bbox_list = detection_bbox_list+search2_bbox
-
-        window_list3 = slide_window(test_img,y_start_stop=y_start_stop,
-                xy_overlap=(overlap,overlap),xy_window=(96,96))
-        search3_bbox = search_windows(test_img,window_list3,clf,scaler,
-                color_space= 'YCrCb',hog_channel='ALL',spatial_feat=spatial_features,
-                hist_feat=color_features)
-        detection_bbox_list = detection_bbox_list+search3_bbox 
+        y_start_stop = [300,700]
+        x_start_stop =[200,1280]
         
-        draw_window_img = draw_boxes(test_img,search1_bbox+search3_bbox)
+        window_list1=[]
+        window_list1 = slide_window(dup_img,xy_window=(64,64),
+                y_start_stop=y_start_stop,xy_overlap=(0.5,0.5))
+        
+        window_list2=[]
+        window_list2 = slide_window(dup_img,x_start_stop=x_start_stop,
+                y_start_stop= y_start_stop,xy_window=(96,96),
+                xy_overlap=(0.5,0.5))
+        window_list3=[]
+        window_list3 = slide_window(dup_img,x_start_stop=x_start_stop,
+                y_start_stop=y_start_stop,
+                xy_overlap=(0.5,0.5),xy_window=(80,80))
+        
+        hot_windows = search_windows(dup_img,
+                window_list3+window_list2+window_list1,
+                clf,scaler, color_space= 'YCrCb',
+                hog_channel='ALL',spatial_feat=spatial_features,               
+                hist_feat=color_features)
+        
+        detection_bbox_list = detection_bbox_list+hot_windows
+        
+        draw_window_img = draw_boxes(test_img,hot_windows)
         heatmap = np.zeros_like(test_img[:,:,0]).astype(np.float)
-        heatmap = add_heat(heatmap,detection_bbox_list)
+        heatmap = add_heat(heatmap,hot_windows)
         heatmap = apply_threshold(heatmap,1)
         labels = label(heatmap)
         draw_img = draw_labeled_bboxes(np.copy(test_img), labels)        
@@ -477,6 +481,7 @@ def transformVideo(clip,clf,scaler,spatial_features,color_features):
         #transformVideo.count +=1
         #image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
         #cv2.imwrite(temp_dir+"img_"+str(transformVideo.count)+".jpg",image)
+
         return process_image(image,clf,scaler,spatial_features,color_features)
     return clip.fl_image(image_transform)
 
@@ -513,8 +518,8 @@ if __name__ == '__main__':
         cell_per_block =2
         hist_bins =32
         spatial_size=(32,32)
-        svm_C=0.1
-        video =False
+        svm_C=0.01
+        video =True
         cspace ='YCrCb'
         videopath="./test_video.mp4"
         output_dir ="./output_video"
@@ -525,7 +530,7 @@ if __name__ == '__main__':
             svm_clf = classifier_dict['classifier']
             scaler = classifier_dict['feature_scaler']
         else:
-            svm_clf,scaler = vehicle_detection_training(test_classifier=True,
+            svm_clf,scaler = vehicle_detection_training(test_classifier=False,
                     color_feat=color_features,
                     spatial_feat=spatial_features,svm_C=svm_C)
             classifier_dict ={'classifier':svm_clf,'feature_scaler':scaler}
