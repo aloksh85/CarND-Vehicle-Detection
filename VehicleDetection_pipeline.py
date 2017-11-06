@@ -437,7 +437,7 @@ def process_image(test_img,clf,scaler,hot_window_list,
         img_size = test_img.shape
         detection_bbox_list = []
         overlap = 0.5
-        y_start_stop = [300,700]
+        y_start_stop = [400,700]
         x_start_stop =[0,1280]
         
         window_list1=[]
