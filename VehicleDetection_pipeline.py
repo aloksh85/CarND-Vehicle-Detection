@@ -429,7 +429,8 @@ def draw_labeled_bboxes(img, labels):
     # Return the image
     return img
 
-def process_image(test_img,clf,scaler,spatial_features=True,color_features=True):
+def process_image(test_img,clf,scaler,hot_window_list,
+        spatial_features=True,color_features=True):
         img_size = test_img.shape
         dup_img = np.copy(test_img.astype(np.float32)/255.0)
         #print('scaled image: ',np.min(test_img),'-',np.max(test_img))
@@ -437,11 +438,11 @@ def process_image(test_img,clf,scaler,spatial_features=True,color_features=True)
         detection_bbox_list = []
         overlap = 0.5
         y_start_stop = [300,700]
-        x_start_stop =[200,1280]
+        x_start_stop =[0,1280]
         
         window_list1=[]
-        window_list1 = slide_window(dup_img,xy_window=(64,64),
-                y_start_stop=y_start_stop,xy_overlap=(0.5,0.5))
+        #window_list1 = slide_window(dup_img,xy_window=(64,64),
+        #        y_start_stop=y_start_stop,xy_overlap=(0.,0.0))
         
         window_list2=[]
         window_list2 = slide_window(dup_img,x_start_stop=x_start_stop,
@@ -450,7 +451,7 @@ def process_image(test_img,clf,scaler,spatial_features=True,color_features=True)
         window_list3=[]
         window_list3 = slide_window(dup_img,x_start_stop=x_start_stop,
                 y_start_stop=y_start_stop,
-                xy_overlap=(0.5,0.5),xy_window=(80,80))
+                xy_overlap=(0.5,0.5),xy_window=(128,128))
         
         hot_windows = search_windows(dup_img,
                 window_list3+window_list2+window_list1,
@@ -460,29 +461,33 @@ def process_image(test_img,clf,scaler,spatial_features=True,color_features=True)
         
         detection_bbox_list = detection_bbox_list+hot_windows
         
-        draw_window_img = draw_boxes(test_img,hot_windows)
+        #draw_window_img = draw_boxes(test_img,hot_windows)
         heatmap = np.zeros_like(test_img[:,:,0]).astype(np.float)
-        heatmap = add_heat(heatmap,hot_windows)
-        heatmap = apply_threshold(heatmap,1)
+        hot_window_list.update_windows(hot_windows)
+        heatmap = add_heat(heatmap,hot_window_list.window_list())
+        heatmap = apply_threshold(heatmap,3)
         labels = label(heatmap)
         draw_img = draw_labeled_bboxes(np.copy(test_img), labels)        
         
         return draw_img
 
 
+
 # Import everything needed to edit/save/watch video clips
 from moviepy.editor import VideoFileClip
 from IPython.display import HTML
 
-def transformVideo(clip,clf,scaler,spatial_features,color_features):
+def transformVideo(clip,clf,scaler,spatial_features,color_features,hot_window_list):
     temp_dir = "/home/alok/Documents/udacity_nd/temp_dir/"
-    
     def image_transform(image):
         #transformVideo.count +=1
         #image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
         #cv2.imwrite(temp_dir+"img_"+str(transformVideo.count)+".jpg",image)
 
-        return process_image(image,clf,scaler,spatial_features,color_features)
+        return process_image(image,clf,scaler,
+                hot_window_list,
+                spatial_features,
+                color_features)
     return clip.fl_image(image_transform)
 
 
@@ -492,8 +497,12 @@ def processVideo(videoPath,outputDir,clf,scaler,spatial_features,color_features)
     print('video file name:',videoFileName)
     output = outputDir+'/out'+videoFileName
     print('out_video:',output)
-    clip  = VideoFileClip(videoPath)#.subclip(35,45)
-    processed_clip = clip.fx(transformVideo,clf,scaler,spatial_features,color_features)
+    hot_window_list = HotWindows()
+    clip  = VideoFileClip(videoPath).subclip(0,10)
+    processed_clip = clip.fx(transformVideo,clf,scaler,
+            spatial_features,
+            color_features,
+            hot_window_list)
     processed_clip.write_videofile(output,audio=False)
 
 
@@ -521,7 +530,7 @@ if __name__ == '__main__':
         svm_C=0.01
         video =True
         cspace ='YCrCb'
-        videopath="./test_video.mp4"
+        videopath="./project_video.mp4"
         output_dir ="./output_video"
 
         if os.path.isfile("vehicle_classifier_allfeats.p"):

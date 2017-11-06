@@ -6,6 +6,34 @@ from skimage.feature import hog
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 
+
+
+
+
+
+class HotWindows():
+    def __init__(self):
+        # a list of all hot windows found in last n frames
+        self.list_windows= None
+        # no. of frames to keep track of
+        self.history_frames = 5
+        #add all hot windows in list
+    def update_windows(self,cur_hot_windows):
+        if not self.list_windows :
+            self.list_windows = cur_hot_windows
+        elif len(self.list_windows) < self.history_frames:
+            self.list_windows = self.list_windows + cur_hot_windows
+        else:
+            self.list_windows.pop(0)
+            self.list_windows = self.list_windows + cur_hot_windows
+    
+    def window_list(self):
+        return self.list_windows
+
+
+
+
+    
 def bin_spatial(img, size=(32,32) ):
     """
     Convert image to new color space (if specified)
