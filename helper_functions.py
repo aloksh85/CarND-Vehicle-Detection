@@ -16,15 +16,17 @@ class HotWindows():
         # a list of all hot windows found in last n frames
         self.list_windows= None
         # no. of frames to keep track of
-        self.history_frames = 5
+        self.history_frames_max = 20
         #add all hot windows in list
     def update_windows(self,cur_hot_windows):
         if not self.list_windows :
             self.list_windows = cur_hot_windows
-        elif len(self.list_windows) < self.history_frames:
+        elif len(self.list_windows) < self.history_frames_max:
             self.list_windows = self.list_windows + cur_hot_windows
         else:
-            self.list_windows.pop(0)
+            extra_frames = len(self.list_windows) - self.history_frames_max
+            for i in range(0,extra_frames):
+                self.list_windows.pop(0)
             self.list_windows = self.list_windows + cur_hot_windows
     
     def window_list(self):

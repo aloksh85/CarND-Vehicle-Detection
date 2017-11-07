@@ -437,12 +437,12 @@ def process_image(test_img,clf,scaler,hot_window_list,
         img_size = test_img.shape
         detection_bbox_list = []
         overlap = 0.5
-        y_start_stop = [400,700]
+        y_start_stop = [350,700]
         x_start_stop =[0,1280]
         
         window_list1=[]
-        #window_list1 = slide_window(dup_img,xy_window=(64,64),
-        #        y_start_stop=y_start_stop,xy_overlap=(0.,0.0))
+        window_list1 = slide_window(dup_img,xy_window=(64,64),
+                y_start_stop=y_start_stop,xy_overlap=(0.5,0.5))
         
         window_list2=[]
         window_list2 = slide_window(dup_img,x_start_stop=x_start_stop,
@@ -451,7 +451,7 @@ def process_image(test_img,clf,scaler,hot_window_list,
         window_list3=[]
         window_list3 = slide_window(dup_img,x_start_stop=x_start_stop,
                 y_start_stop=y_start_stop,
-                xy_overlap=(0.5,0.5),xy_window=(128,128))
+                xy_overlap=(0.5,0.5),xy_window=(80,80))
         
         hot_windows = search_windows(dup_img,
                 window_list3+window_list2+window_list1,
@@ -461,11 +461,13 @@ def process_image(test_img,clf,scaler,hot_window_list,
         
         detection_bbox_list = detection_bbox_list+hot_windows
         
-        #draw_window_img = draw_boxes(test_img,hot_windows)
+        #print('len hot windows: ',len(hot_windows))
         heatmap = np.zeros_like(test_img[:,:,0]).astype(np.float)
         hot_window_list.update_windows(hot_windows)
+        #print('len all hot windows: ', len(hot_window_list.window_list()))
+        draw_window_img = draw_boxes(test_img,hot_window_list.window_list())
         heatmap = add_heat(heatmap,hot_window_list.window_list())
-        heatmap = apply_threshold(heatmap,3)
+        heatmap = apply_threshold(heatmap,2)
         labels = label(heatmap)
         draw_img = draw_labeled_bboxes(np.copy(test_img), labels)        
         
@@ -498,7 +500,7 @@ def processVideo(videoPath,outputDir,clf,scaler,spatial_features,color_features)
     output = outputDir+'/out'+videoFileName
     print('out_video:',output)
     hot_window_list = HotWindows()
-    clip  = VideoFileClip(videoPath).subclip(0,10)
+    clip  = VideoFileClip(videoPath)#.subclip(0,20)
     processed_clip = clip.fx(transformVideo,clf,scaler,
             spatial_features,
             color_features,
@@ -517,7 +519,7 @@ if __name__ == '__main__':
         visualise_feature_image(cspace='RGB',orient=9,pix_per_cell=8,cell_per_block=2)
         plt.show()
     
-    if True:
+    if False:
         svm_clf = None
         scaler = None
         spatial_features = True
