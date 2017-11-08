@@ -405,25 +405,29 @@ def process_test_images(clf,scaler,
         
         detection_bbox_list = detection_bbox_list+hot_windows
         
-        draw_window_img = draw_boxes(test_img,hot_windows)
+        draw_window_img = draw_boxes(dup_img,hot_windows)
         labels,heatmap = build_heatmap(test_img,hot_windows,thresh=1,heatmap_img=True)
         draw_img = draw_labeled_bboxes(dup_img, labels)
         
         if j == 2:
             j = 0
             i+=1
-        arr[i,j].imshow(draw_img)
+        arr[i,j].imshow(heatmap,cmap='hot')
         #arr[i,1].imshow(draw_img)
         j+=1
+    f.suptitle(" HEAT MAPS ")
         
 
 def build_heatmap(img,hot_windows,thresh=1,heatmap_img=False):
 
-        heatmap = np.zeros_like(test_img[:,:,0]).astype(np.float)
+        heatmap = np.zeros_like(img[:,:,0]).astype(np.float)
         heatmap = add_heat(heatmap,hot_windows)
         heatmap = apply_threshold(heatmap,thresh)
         labels = label(heatmap)
+
         if heatmap_img:
+        # Visualize the heatmap when displaying    
+            heatmap = np.clip(heatmap, 0, 255)
             return labels,heatmap
         else:
             return labels
@@ -470,7 +474,7 @@ def process_image(test_img,clf,scaler,hot_window_list,
         detection_bbox_list = []
         overlap = 0.5
         y_start_stop = [350,700]
-        x_start_stop =[0,1280]
+        x_start_stop =[200,1280]
         
         window_list1=[]
         window_list1 = slide_window(dup_img,xy_window=(64,64),
@@ -566,7 +570,7 @@ if __name__ == '__main__':
         hist_bins = 32
         spatial_size=(32,32)
         svm_C=1.0
-        video = True
+        video = False
         cspace ='YCrCb'
         videopath="./project_video.mp4"
         output_dir ="./output_video"
