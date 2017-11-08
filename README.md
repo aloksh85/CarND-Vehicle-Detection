@@ -38,15 +38,31 @@ HOG - orientation: 9, pix_per_cell: 8, cell_per_block:2,  SpatialSize =(32,32), 
 HOG - orientation: 9, pix_per_cell: 8, cell_per_block:2,  No spatial features, Color histogram bins: 32
 HOG - orientation: 9, pix_per_cell: 8, cell_per_block:2,  No spatial feaures, No color histogram
  ```
-Out of these parameter sets, I saw the highest test accuracy (99.2%) with ` HOG - orientation: 9, pix\_per\_cell: 8, cell\_per\_block:2,  SpatialSize =(32,32), Color histogram bins: 32` 
- Even though this led to a feature vector  size of 8460, I decided to use this parameter set for the pipeline  since the classifier 
+Out of these parameter sets, I saw the highest test accuracy (99.2%) with ` HOG - orientation: 9, pix_per_cell: 8, cell_per_block: 2,  SpatialSize =(32,32), Color histogram bins: 32` 
+Due to the high test accuracy, I decided to use this parameter set for the pipeline even though these parameters lead to a vector  size of 8460, 
  
- 
 
-**As an optional challenge** Once you have a working pipeline for vehicle detection, add in your lane-finding algorithm from the last project to do simultaneous lane-finding and vehicle detection!
+### Sliding Window Search
+A sliding window search mechanism has been implemented to be able to search for vehicles in frames of a video. The method `sliding_windows` and `search_windows` facilitate the sliding window mechanism. The `sliding_windows` methods creates a list of bounding boxes of a specified size, specified overlap ratio and start stop bounds. The `search_window`method extracts the image patch within each bounding box, extracts features and classifes whether there is a vehicle in the image.
 
-**If you're feeling ambitious** (also totally optional though), don't stop there!  We encourage you to go out and take video of your own, and show us how you would implement this project on a new video!
+After trying many different window sizes and overlap ratios, I decided to perform sliding window at 3 scales 
+```
+window search 1: size=(64,64) overlap=(0.5,0.5), y_start_stop=[300,700]
+window search 2: size=(96,96) overlap=(0.5,0.5), y_start_stop=[300,700]
+window search 3: size=(80,80) overlap=(0.5,0.5),y_start_stop=[300,700]
+```
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+I chose the three window sizes to be able to capture vehicles at different scales in the image. Vehicles at a greater distance from camera are captured by smaller windows and vehicles closer to camera are captured by larger windows. Also, activations at different scales can be used combined to measure confidence in classification result. The `y_start_stop` bounds are used to minimise false positives. It limits the search to the relevant part of image and reduces false positives.
 
+In order to combine results from different window sizes into single bounding box, a heatmap is built.To build heatmap, a binary image containing all zeros is created and then values of  pixels that lie inside windows where vehicles were found are  incremented. In the end a threshold is applied to this heatmap such that pixels with values less than threshold are set to zero. This gives the final heat map and bounding boxes for neighboring 'hot' pixels are computed. This functionality is achieved via method `build_heatmap`
+
+![SLIDING SEARCH IMG1]( "Sliding Windows")
+![HEATMAP IMAGE]()
+![SLIDING SEARCH IMG2]( output_images/test_image_results.png "test result")
+
+This setup resulted in high detection rate and low false positives. 
+
+
+References:
+[Fundamentals of HOG](https://www.learnopencv.com/histogram-of-oriented-gradients/) 
+Udacity Self Driving Car lesson

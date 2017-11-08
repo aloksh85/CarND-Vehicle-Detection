@@ -120,8 +120,14 @@ def single_img_features(image, cspace='RGB',
 
         hog_features = np.ravel(hog_features)        
     else:
-        hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
-                    pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+        if visualise:
+            hog_features, hog_image = get_hog_features(feature_image[:,:,hog_channel], orient, 
+                        pix_per_cell, cell_per_block, vis=True, feature_vec=True)
+        else:
+            hog_features = get_hog_features(feature_image[:,:,hog_channel], orient, 
+                        pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+
+        hog_features = np.ravel(hog_features)        
     # Append the new feature vector to the features list
     file_features.append(hog_features)
     #Append color histogram features if flag is set
@@ -134,7 +140,7 @@ def single_img_features(image, cspace='RGB',
         file_features.append(s_features)
     
     if visualise:
-        return np.concatenate(file_features),hog_image
+        return np.concatenate(file_features), hog_image
     else:
         return np.concatenate(file_features)
 
@@ -243,6 +249,9 @@ def train_classifier(train_features,train_labels,clf_type='SVM',svm_C=1.0):
 
 
 def vehicle_detection_training(test_classifier=False,
+                               orient =9,
+                               pix_per_cell=8,
+                               cell_per_block =2,
                                color_feat=True,
                                spatial_feat=True,
                                svm_C=1.0,
@@ -279,8 +288,11 @@ def vehicle_detection_training(test_classifier=False,
     
     #visualise_feature_image(car_img,not_car_img,cspace='YCrCb')
     car_features = extract_features(cars,cspace='YCrCb',hog_channel='ALL',
+            orient=orient,pix_per_cell=pix_per_cell,cell_per_block=cell_per_block,
             color_features=color_feat,spatial_features =spatial_feat)
+
     notcar_features = extract_features(notcars,cspace='YCrCb',hog_channel='ALL',
+            orient=orient,pix_per_cell=pix_per_cell,cell_per_block=cell_per_block,
             color_features=color_feat,spatial_features=spatial_feat)
     
     train_labels = np.hstack((np.ones(len(car_features)),np.zeros(len(notcar_features))))
@@ -329,6 +341,7 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 
         #4) Extract features for that window using single_img_features()
         features = single_img_features(test_img, cspace=color_space, 
+                orient=orient,pix_per_cell=pix_per_cell,cell_per_block=cell_per_block,
                 hog_channel='ALL',visualise = False,
                 color_features=hist_feat,spatial_features=spatial_feat)
                            
@@ -348,7 +361,9 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
     return on_windows
 
 
-def process_test_images(clf,scaler,color_features=True,spatial_features=True):
+def process_test_images(clf,scaler,
+        orient=9,pix_per_cell=8,cell_per_block=2,
+        color_features=True,spatial_features=True):
 
       
     test_image_files =  glob.glob('./test_images/*.jpg')
@@ -384,16 +399,14 @@ def process_test_images(clf,scaler,color_features=True,spatial_features=True):
         hot_windows = search_windows(test_img,
                 window_list3+window_list2+window_list1,
                 clf,scaler, color_space= 'YCrCb',
+                orient=orient,pix_per_cell=pix_per_cell,cell_per_block=cell_per_block,
                 hog_channel='ALL',spatial_feat=spatial_features,               
                 hist_feat=color_features)
         
         detection_bbox_list = detection_bbox_list+hot_windows
         
         draw_window_img = draw_boxes(test_img,hot_windows)
-        heatmap = np.zeros_like(test_img[:,:,0]).astype(np.float)
-        heatmap = add_heat(heatmap,hot_windows)
-        heatmap = apply_threshold(heatmap,1)
-        labels = label(heatmap)
+        labels,heatmap = build_heatmap(test_img,hot_windows,thresh=1,heatmap_img=True)
         draw_img = draw_labeled_bboxes(dup_img, labels)
         
         if j == 2:
@@ -403,6 +416,17 @@ def process_test_images(clf,scaler,color_features=True,spatial_features=True):
         #arr[i,1].imshow(draw_img)
         j+=1
         
+
+def build_heatmap(img,hot_windows,thresh=1,heatmap_img=False):
+
+        heatmap = np.zeros_like(test_img[:,:,0]).astype(np.float)
+        heatmap = add_heat(heatmap,hot_windows)
+        heatmap = apply_threshold(heatmap,thresh)
+        labels = label(heatmap)
+        if heatmap_img:
+            return labels,heatmap
+        else:
+            return labels
 
 def add_heat(heatmap, bbox_list):
     # Iterate through list of bboxes
@@ -437,6 +461,7 @@ def draw_labeled_bboxes(img, labels):
     return img
 
 def process_image(test_img,clf,scaler,hot_window_list,
+        orient=9,pix_per_cell=8,cell_per_block=2,
         spatial_features=True,color_features=True):
         img_size = test_img.shape
         dup_img = np.copy(test_img.astype(np.float32)/255.0)
@@ -462,7 +487,9 @@ def process_image(test_img,clf,scaler,hot_window_list,
         
         hot_windows = search_windows(dup_img,
                 window_list3+window_list2+window_list1,
-                clf,scaler, color_space= 'YCrCb',
+                clf,scaler, 
+                orient=orient,pix_per_cell=pix_per_cell,cell_per_block=cell_per_block,
+                color_space= 'YCrCb',
                 hog_channel='ALL',spatial_feat=spatial_features,               
                 hist_feat=color_features)
         
@@ -473,9 +500,7 @@ def process_image(test_img,clf,scaler,hot_window_list,
         hot_window_list.update_windows(hot_windows)
         #print('len all hot windows: ', len(hot_window_list.window_list()))
         draw_window_img = draw_boxes(test_img,hot_window_list.window_list())
-        heatmap = add_heat(heatmap,hot_window_list.window_list())
-        heatmap = apply_threshold(heatmap,2)
-        labels = label(heatmap)
+        labels = build_heatmap(test_img,hot_window_list.window_list(),thresh=2)
         draw_img = draw_labeled_bboxes(np.copy(test_img), labels)        
         
         return draw_img
@@ -486,22 +511,25 @@ def process_image(test_img,clf,scaler,hot_window_list,
 from moviepy.editor import VideoFileClip
 from IPython.display import HTML
 
-def transformVideo(clip,clf,scaler,spatial_features,color_features,hot_window_list):
-    temp_dir = "/home/alok/Documents/udacity_nd/temp_dir/"
+def transformVideo(clip,clf,scaler,spatial_features,color_features,hot_window_list,
+        orient = 9, pix_per_cell = 8, cell_per_block = 2):
+
     def image_transform(image):
-        #transformVideo.count +=1
-        #image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
-        #cv2.imwrite(temp_dir+"img_"+str(transformVideo.count)+".jpg",image)
 
         return process_image(image,clf,scaler,
                 hot_window_list,
-                spatial_features,
-                color_features)
+                orient = orient, 
+                pix_per_cell = pix_per_cell, 
+                cell_per_block = cell_per_block,
+                spatial_features=spatial_features,
+                color_features=color_features)
+
     return clip.fl_image(image_transform)
 
 
 
-def processVideo(videoPath,outputDir,clf,scaler,spatial_features,color_features):
+def processVideo(videoPath,outputDir,clf,scaler,spatial_features=True,color_features=True,
+                    orient = 9, pix_per_cell = 8, cell_per_block = 2):
     videoFileName = videoPath.split('/')[-1]
     print('video file name:',videoFileName)
     output = outputDir+'/out'+videoFileName
@@ -521,6 +549,7 @@ if __name__ == '__main__':
     if False:
         visualise_feature_image(cspace='HSV',orient=9,pix_per_cell=16,cell_per_block=2)
         visualise_feature_image(cspace='YCrCb',orient=9,pix_per_cell=8,cell_per_block=2)
+        visualise_feature_image(cspace='YCrCb',orient=9,pix_per_cell=16,cell_per_block=2)
         visualise_feature_image(cspace='LUV',orient=9,pix_per_cell=8,cell_per_block=2)
         visualise_feature_image(cspace='HLS',orient=9,pix_per_cell=8,cell_per_block=2)
         visualise_feature_image(cspace='RGB',orient=9,pix_per_cell=8,cell_per_block=2)
@@ -534,31 +563,36 @@ if __name__ == '__main__':
         orient=9
         pix_per_cell=8
         cell_per_block =2
-        hist_bins =32
+        hist_bins = 32
         spatial_size=(32,32)
-        svm_C=0.01
-        video = False
+        svm_C=1.0
+        video = True
         cspace ='YCrCb'
         videopath="./project_video.mp4"
         output_dir ="./output_video"
-
-        if os.path.isfile("vehicle_classifier_allfeats.p"):
+        classifier_file="vehicle_classifier_allfeats.p"
+        
+        if os.path.isfile(classifier_file):
             print("Loading classifer from file")
-            classifier_dict = pickle.load(open("vehicle_classifier_allfeats.p","rb"))
+            classifier_dict = pickle.load(open(classifier_file,"rb"))
             svm_clf = classifier_dict['classifier']
             scaler = classifier_dict['feature_scaler']
         else:
             svm_clf,scaler = vehicle_detection_training(test_classifier=False,
+                    orient = orient, pix_per_cell = pix_per_cell, cell_per_block = cell_per_block,
                     color_feat=color_features,
                     spatial_feat=spatial_features,svm_C=svm_C)
             classifier_dict ={'classifier':svm_clf,'feature_scaler':scaler}
-            pickle.dump(classifier_dict,open("vehicle_classifier_allfeats.p","wb"))
+            pickle.dump(classifier_dict,open(classifier_file,"wb"))
            
 
         if video:
-            processVideo(videopath,output_dir,svm_clf,scaler,spatial_features,color_features)
+            processVideo(videopath,output_dir,svm_clf,scaler,
+                    orient = orient, pix_per_cell = pix_per_cell, cell_per_block = cell_per_block,
+                    spatial_features=True,color_features=True)
         else:
             process_test_images(svm_clf,scaler,
-                spatial_features=spatial_features,color_features=color_features)
+                    orient = orient, pix_per_cell = pix_per_cell, cell_per_block = cell_per_block,
+                    spatial_features=spatial_features,color_features=color_features)
             plt.show()
 
