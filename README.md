@@ -22,14 +22,26 @@ The method `extract_features` and `single_img_features` in `VehicleDetection_pip
 In order to decide what parameters will give the most expressive/rich and distinctive HOG feautres for vehicles I tried to visualise the results of HOG feature extraction for car and non-car images with different parameters.
 The images below show hog features with the different combinations of color space, number of gradient orientations, pixel per cell and cells per block.
 
-![HOG RESULT1](./)
-![HOG RESULT2](./)
-![HOG RESULT3](./)
-![HOG RESULT4](./)
-![HOG RESULT5](./)
+![HOG RESULT1](output_images/HOG_image1.png)
+![HOG RESULT5](output_images/HOG_image8.png)
+![HOG RESULT5](output_images/HOG_image9.png)
+![HOG RESULT2](output_images/HOG_image7.png)
 
-
-
+Looking at the visualizations, I observed that HOG features in _YCrCb_ colorspace captured shape of the vehicles best and are very different from nonvehicle hog features. So I decided to use _YCrCb_ color space for HOG feature extraction. 
+#### SVM Classifier Training
+ In order to decide the remaining parameters, I trained a SVM classifier using the features extracted with different sets of parameters and selected the values that gave best results. The method `vehicle_detection_training` performs SVM training. It first extracts features using `extract_features`, splits the dataset into train and test sets, and then trains a Linear SVM using the LinearSVC module from sklearn library.
+ 
+ The following parameter sets were tested:
+ ```
+ HOG - orientation: 8, pix_per_cell: 8, cell_per_block:2,  SpatialSize =(32,32), Color histogram bins: 32
+HOG - orientation: 9, pix_per_cell: 8, cell_per_block:2,  SpatialSize =(32,32), Color histogram bins: 32
+HOG - orientation: 9, pix_per_cell: 8, cell_per_block:2,  No spatial features, Color histogram bins: 32
+HOG - orientation: 9, pix_per_cell: 8, cell_per_block:2,  No spatial feaures, No color histogram
+ ```
+Out of these parameter sets, I saw the highest test accuracy (99.2%) with ` HOG - orientation: 9, pix\_per\_cell: 8, cell\_per\_block:2,  SpatialSize =(32,32), Color histogram bins: 32` 
+ Even though this led to a feature vector  size of 8460, I decided to use this parameter set for the pipeline  since the classifier 
+ 
+ 
 
 **As an optional challenge** Once you have a working pipeline for vehicle detection, add in your lane-finding algorithm from the last project to do simultaneous lane-finding and vehicle detection!
 
