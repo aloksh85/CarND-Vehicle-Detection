@@ -412,10 +412,10 @@ def process_test_images(clf,scaler,
         if j == 2:
             j = 0
             i+=1
-        arr[i,j].imshow(heatmap,cmap='hot')
+        arr[i,j].imshow(draw_img)
         #arr[i,1].imshow(draw_img)
         j+=1
-    f.suptitle(" HEAT MAPS ")
+    f.suptitle(" DETECTION RESULTS ")
         
 
 def build_heatmap(img,hot_windows,thresh=1,heatmap_img=False):
