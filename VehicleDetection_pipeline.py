@@ -352,10 +352,12 @@ def process_test_images(clf,scaler,color_features=True,spatial_features=True):
 
       
     test_image_files =  glob.glob('./test_images/*.jpg')
-    
+    f,arr = plt.subplots(3,2,figsize=(15,15))
+    i=0
+    j=0
     for img in test_image_files:
-        f,arr = plt.subplots(1,2,figsize=(15,15))
         test_img = mpimg.imread(img)
+        dup_img = np.copy(test_img)
         #test_img = cv2.cvtColor(test_img,cv2.COLOR_BGR2RGB)
 #        print('image: ',np.min(test_img),'-',np.max(test_img))
         test_img= test_img.astype(np.float32)/255.0
@@ -392,9 +394,14 @@ def process_test_images(clf,scaler,color_features=True,spatial_features=True):
         heatmap = add_heat(heatmap,hot_windows)
         heatmap = apply_threshold(heatmap,1)
         labels = label(heatmap)
-        draw_img = draw_labeled_bboxes(np.copy(test_img), labels)        
-        arr[0].imshow(test_img)
-        arr[1].imshow(draw_img)
+        draw_img = draw_labeled_bboxes(dup_img, labels)
+        
+        if j == 2:
+            j = 0
+            i+=1
+        arr[i,j].imshow(draw_img)
+        #arr[i,1].imshow(draw_img)
+        j+=1
         
 
 def add_heat(heatmap, bbox_list):
@@ -519,7 +526,7 @@ if __name__ == '__main__':
         visualise_feature_image(cspace='RGB',orient=9,pix_per_cell=8,cell_per_block=2)
         plt.show()
     
-    if False:
+    if True:
         svm_clf = None
         scaler = None
         spatial_features = True
@@ -530,7 +537,7 @@ if __name__ == '__main__':
         hist_bins =32
         spatial_size=(32,32)
         svm_C=0.01
-        video =True
+        video = False
         cspace ='YCrCb'
         videopath="./project_video.mp4"
         output_dir ="./output_video"
