@@ -82,5 +82,5 @@ The idea is that it keeps accumulating windows across frames into a list till it
 	
 
 References:
-[Fundamentals of HOG](https://www.learnopencv.com/histogram-of-oriented-gradients/) 
-Udacity Self Driving Car lesson
+* [Fundamentals of HOG](https://www.learnopencv.com/histogram-of-oriented-gradients/) 
+* Udacity Self Driving Car lesson
